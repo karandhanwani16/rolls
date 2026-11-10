@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+
+# Secrets and local env (JWT, database URL, API origin)
+.env
+.env.*
+!.env.example
+*.local
+
+# Frontend build (Vite) and Electron Forge package output
+dist/
+dist-ssr/
+out/
+build/
+.webpack/
+
+# Local USB / desktop runtime created while the app is running
+usb-dev/
+backups/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Databases and SQLite sidecars (dev machine and USB copies)
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite.enc
+*.db
+
+# .NET usb-monitor build output
+bin/
+obj/
+*.pdb
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+.vs/
+
+# Electron / Windows installer leftovers
+*.nupkg
+*.msi
+RELEASES
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+*.lnk
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~

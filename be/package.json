@@ -1,0 +1,38 @@
+{
+  "name": "mohit-traders-backend",
+  "version": "1.0.0",
+  "description": "Backend API for T. A. TEX billing software",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "postinstall": "prisma generate",
+    "migrate:remote": "node scripts/apply-migrations.js",
+    "restore-backup": "node scripts/restore-backup.js",
+    "test": "node --test tests/**/*.test.js",
+    "lint": "node --check services/paymentInService.js && node --check services/watavAllocation.js && node --check services/watavSettlementService.js && node --check utils/money.js && node --check controllers/paymentInController.js && node --check routes/paymentInRoutes.js",
+    "seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.1",
+    "express": "^4.21.2",
+    "express-validator": "^7.0.1",
+    "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.2",
+    "pdfkit": "^0.17.0",
+    "prisma": "^5.14.0",
+    "puppeteer": "^24.7.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}

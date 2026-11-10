@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>UsbMonitor</AssemblyName>
+    <RootNamespace>TATex.UsbMonitor</RootNamespace>
+    <Product>T. A. TEX USB Monitor</Product>
+    <Version>1.0.0</Version>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon />
+  </PropertyGroup>
+</Project>
