@@ -1,0 +1,75 @@
+name: Package Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install frontend dependencies
+        run: npm --prefix fe install
+
+      - name: Install backend dependencies
+        shell: pwsh
+        run: |
+          $env:PUPPETEER_SKIP_DOWNLOAD = "1"
+          npm --prefix be install
+
+      - name: Use SQLite schema for USB package
+        shell: pwsh
+        run: |
+          $schema = "be/prisma/schema.prisma"
+          (Get-Content $schema) `
+            -replace 'provider\s*=\s*"mysql"', 'provider = "sqlite"' |
+            Set-Content $schema
+          Select-String -Path $schema -Pattern 'provider\s*='
+
+      - name: Create backend .env for prisma generate
+        shell: pwsh
+        run: |
+          @"
+          DATABASE_URL="file:./dev.db"
+          USB_ROOT="usb-dev"
+          DATABASE_PATH="usb-dev/data/database.sqlite"
+          JWT_SECRET="PDZekIziIxat6TklAcQbgF7SgRDtl04tZWVKSEmr6tq"
+          PORT=3001
+          CORS_ORIGINS="http://localhost:8080"
+          NODE_ENV="production"
+          "@ | Set-Content -Path "be/.env" -Encoding utf8
+
+      - name: Generate Prisma client
+        working-directory: be
+        run: npx prisma generate
+
+      - name: Rebuild native modules
+        working-directory: be
+        run: npm rebuild bcrypt
+
+      - name: Package Electron app
+        shell: pwsh
+        run: |
+          $env:PUPPETEER_SKIP_DOWNLOAD = "1"
+          npm run package
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: TATex-win32-x64
+          path: out/T. A. TEX-win32-x64
+          if-no-files-found: error
+          retention-days: 14
