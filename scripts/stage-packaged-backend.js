@@ -117,6 +117,7 @@ const required = [
   "config/database.js",
   "prisma/schema.prisma",
   "node_modules/@prisma/client",
+  "node_modules/.prisma/client",
   "node_modules/bcrypt",
   "node_modules/express",
 ];

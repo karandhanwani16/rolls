@@ -73,6 +73,7 @@ jobs:
             "$root/resources/app/fe/dist/index.html",
             "$root/resources/backend/index.js",
             "$root/resources/backend/node_modules/@prisma/client",
+            "$root/resources/backend/node_modules/.prisma/client",
             "$root/resources/node/node.exe"
           )) {
             if (-not (Test-Path $path)) { throw "Missing required path: $path" }
@@ -82,6 +83,8 @@ jobs:
           }
           Get-ChildItem $root | Format-Table Name, Length
 
+      # upload-artifact v4 omits hidden files by default — that drops
+      # node_modules/.prisma and breaks @prisma/client at runtime.
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
         with:
@@ -89,3 +92,4 @@ jobs:
           path: out/T. A. TEX-win32-x64
           if-no-files-found: error
           retention-days: 14
+          include-hidden-files: true

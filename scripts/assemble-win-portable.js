@@ -167,6 +167,10 @@ async function main() {
   assertExists(path.join(appDir, "fe", "dist", "index.html"), "resources/app/fe/dist/index.html");
   assertExists(path.join(backendDest, "index.js"), "resources/backend/index.js");
   assertExists(path.join(backendDest, "utils", "usbBackup.js"), "resources/backend/utils/usbBackup.js");
+  assertExists(
+    path.join(backendDest, "node_modules", ".prisma", "client"),
+    "resources/backend/node_modules/.prisma/client (prisma generate output)"
+  );
   assertExists(path.join(nodeDestDir, "node.exe"), "resources/node/node.exe");
 
   if (fs.existsSync(path.join(backendDest, "node_modules", "puppeteer"))) {
