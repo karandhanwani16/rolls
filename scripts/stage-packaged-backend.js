@@ -15,7 +15,8 @@ function shouldSkip(relativePath) {
   if (!normalized) {
     return false;
   }
-  if (normalized === ".env") {
+  // Never ship secrets; match .env, .env.local, .env.production, etc.
+  if (normalized === ".env" || normalized.startsWith(".env.")) {
     return true;
   }
   if (normalized === ".git" || normalized.startsWith(".git/")) {
@@ -46,6 +47,12 @@ fs.cpSync(src, dest, {
   },
 });
 
+// fs.cpSync filter can miss dotfiles on some Windows/Node combos — strip after copy.
+for (const name of fs.readdirSync(dest)) {
+  if (name === ".env" || name.startsWith(".env.")) {
+    fs.rmSync(path.join(dest, name), { force: true });
+  }
+}
 if (fs.existsSync(path.join(dest, ".env"))) {
   throw new Error("Refusing to package be/.env");
 }
