@@ -1,0 +1,41 @@
+name: Build USB Monitor
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish UsbMonitor (self-contained win-x64)
+        run: >
+          dotnet publish usb-monitor/TATex.UsbMonitor.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -o artifacts/UsbMonitor
+
+      - name: Verify output
+        shell: pwsh
+        run: |
+          $exe = "artifacts/UsbMonitor/UsbMonitor.exe"
+          if (-not (Test-Path $exe)) { throw "Missing $exe" }
+          Get-ChildItem "artifacts/UsbMonitor" | Format-Table Name, Length
+
+      - name: Upload UsbMonitor
+        uses: actions/upload-artifact@v4
+        with:
+          name: UsbMonitor-win-x64
+          path: artifacts/UsbMonitor
+          if-no-files-found: error
+          retention-days: 30
