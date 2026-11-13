@@ -60,7 +60,36 @@ function getDatabasePath() {
   return path.join(getUsbRoot(), "data", "database.sqlite");
 }
 
+function getBundledNodePath() {
+  if (!isPackaged()) {
+    return "";
+  }
+
+  const candidates = [];
+  if (process.resourcesPath) {
+    candidates.push(path.join(process.resourcesPath, "node", "node.exe"));
+    candidates.push(path.join(process.resourcesPath, "node", "node"));
+  }
+  if (process.execPath) {
+    candidates.push(
+      path.join(path.dirname(process.execPath), "resources", "node", "node.exe")
+    );
+  }
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || "";
+}
+
 function getNodeSpawn(scriptPath, extraArgs = []) {
+  const bundledNode = getBundledNodePath();
+  if (bundledNode) {
+    // Prefer real Node for backend — bcrypt/prisma native builds match CI Node, not Electron ABI.
+    return {
+      command: bundledNode,
+      args: [scriptPath, ...extraArgs],
+      extraEnv: {},
+    };
+  }
+
   if (isPackaged()) {
     return {
       command: process.execPath,
@@ -79,6 +108,7 @@ function getNodeSpawn(scriptPath, extraArgs = []) {
 module.exports = {
   REPO_ROOT,
   getBackendDir,
+  getBundledNodePath,
   getDatabasePath,
   getFrontendIndexHtml,
   getNodeSpawn,

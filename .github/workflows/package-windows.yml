@@ -72,7 +72,8 @@ jobs:
             "$root/resources/app/electron/main.js",
             "$root/resources/app/fe/dist/index.html",
             "$root/resources/backend/index.js",
-            "$root/resources/backend/node_modules/@prisma/client"
+            "$root/resources/backend/node_modules/@prisma/client",
+            "$root/resources/node/node.exe"
           )) {
             if (-not (Test-Path $path)) { throw "Missing required path: $path" }
           }

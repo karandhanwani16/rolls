@@ -1,6 +1,6 @@
 const { app, BrowserWindow, dialog } = require("electron");
 const path = require("path");
-const { startBackend } = require("./backend-manager");
+const { startBackend, waitForBackend } = require("./backend-manager");
 const { ensureDatabase } = require("./database-manager");
 const { registerShutdownHandlers, shutdownApp } = require("./shutdown-manager");
 const { startUsbWatch } = require("./usb-manager");
@@ -46,6 +46,13 @@ app.whenReady().then(async () => {
     return;
   }
   startBackend();
+  try {
+    await waitForBackend(45000);
+  } catch (error) {
+    dialog.showErrorBox("T. A. TEX backend failed to start", error.stack || String(error));
+    app.quit();
+    return;
+  }
   createWindow();
   startUsbWatch({
     usbRoot: getUsbRoot(),

@@ -1,12 +1,14 @@
 const { spawn } = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
+const http = require("http");
 const path = require("path");
 const { app } = require("electron");
 const { BACKEND_PORT } = require("./config");
 const { ensureDatabaseDir } = require("./database-manager");
 const {
   getBackendDir,
+  getBundledNodePath,
   getDatabasePath,
   getNodeSpawn,
   getUsbRoot,
@@ -66,6 +68,19 @@ function getOrCreateJwtSecret(fromFile) {
   return secret;
 }
 
+function getBackendLogPath() {
+  try {
+    const usbRoot = getUsbRoot();
+    const logsDir = path.join(usbRoot, "logs");
+    fs.mkdirSync(logsDir, { recursive: true });
+    return path.join(logsDir, "backend.log");
+  } catch {
+    const fallback = path.join(app.getPath("userData"), "backend.log");
+    fs.mkdirSync(path.dirname(fallback), { recursive: true });
+    return fallback;
+  }
+}
+
 function buildBackendEnv() {
   const backendDir = getBackendDir();
   const fromFile = parseEnvFile(path.join(backendDir, ".env"));
@@ -92,6 +107,14 @@ function buildBackendEnv() {
   return env;
 }
 
+function appendBackendLog(message) {
+  try {
+    fs.appendFileSync(getBackendLogPath(), `${message}\n`, "utf8");
+  } catch {
+    // ignore logging failures
+  }
+}
+
 function startBackend() {
   if (backendProcess) {
     return backendProcess;
@@ -100,6 +123,20 @@ function startBackend() {
   const backendDir = getBackendDir();
   const backendEntry = path.join(backendDir, "index.js");
   const { command, args, extraEnv } = getNodeSpawn(backendEntry);
+  const logPath = getBackendLogPath();
+
+  appendBackendLog(
+    `[${new Date().toISOString()}] starting backend command=${command} args=${JSON.stringify(
+      args
+    )} bundledNode=${getBundledNodePath() || "(none)"}`
+  );
+
+  let logFd = "inherit";
+  try {
+    logFd = fs.openSync(logPath, "a");
+  } catch {
+    logFd = "inherit";
+  }
 
   backendProcess = spawn(command, args, {
     cwd: backendDir,
@@ -107,20 +144,63 @@ function startBackend() {
       ...buildBackendEnv(),
       ...extraEnv,
     },
-    stdio: "inherit",
+    stdio: logFd === "inherit" ? "inherit" : ["ignore", logFd, logFd],
   });
 
   backendProcess.on("error", (error) => {
     console.error("Failed to start backend:", error);
+    appendBackendLog(`[${new Date().toISOString()}] spawn error: ${error.stack || error}`);
     backendProcess = null;
   });
 
   backendProcess.on("exit", (code, signal) => {
-    console.log(`Backend exited (code=${code}, signal=${signal})`);
+    const line = `Backend exited (code=${code}, signal=${signal})`;
+    console.log(line);
+    appendBackendLog(`[${new Date().toISOString()}] ${line}`);
     backendProcess = null;
   });
 
   return backendProcess;
+}
+
+function probeHealth(timeoutMs = 1000) {
+  return new Promise((resolve) => {
+    const req = http.get(
+      {
+        host: "127.0.0.1",
+        port: BACKEND_PORT,
+        path: "/api/health",
+        timeout: timeoutMs,
+      },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode === 200);
+      }
+    );
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on("error", () => resolve(false));
+  });
+}
+
+async function waitForBackend(timeoutMs = 30000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (!backendProcess) {
+      throw new Error(
+        `Backend process exited before becoming ready. See log: ${getBackendLogPath()}`
+      );
+    }
+    if (await probeHealth(800)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  throw new Error(
+    `Backend did not become ready on port ${BACKEND_PORT}. See log: ${getBackendLogPath()}`
+  );
 }
 
 function isBackendRunning() {
@@ -178,6 +258,7 @@ function stopBackend(options = {}) {
 module.exports = {
   startBackend,
   stopBackend,
+  waitForBackend,
   isBackendRunning,
   buildBackendEnv,
   BACKEND_PORT,

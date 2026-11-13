@@ -65,6 +65,10 @@ app.use((req, res, next) => {
     next();
 });
 
+app.get('/api/health', (_req, res) => {
+    res.json({ ok: true });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);

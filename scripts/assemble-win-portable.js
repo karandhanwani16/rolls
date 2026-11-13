@@ -12,6 +12,7 @@
  *   out/T. A. TEX-win32-x64/TATex.exe
  *   out/T. A. TEX-win32-x64/resources/app/...
  *   out/T. A. TEX-win32-x64/resources/backend/...
+ *   out/T. A. TEX-win32-x64/resources/node/node.exe
  */
 
 const fs = require("fs");
@@ -129,11 +130,44 @@ async function main() {
   console.log(`Copying backend → ${backendDest}`);
   fs.cpSync(BACKEND_SRC, backendDest, { recursive: true });
 
+  // Bundle real Node for backend (bcrypt native addon matches Node ABI, not Electron).
+  const nodeVersion = process.version.replace(/^v/, "");
+  const nodeZipName = `node-v${nodeVersion}-win-x64.zip`;
+  const nodeZipUrl = `https://nodejs.org/dist/v${nodeVersion}/${nodeZipName}`;
+  const nodeZipPath = path.join(CACHE_DIR, nodeZipName);
+  const nodeExtractDir = path.join(CACHE_DIR, `node-v${nodeVersion}-win-x64`);
+
+  if (!fs.existsSync(nodeZipPath) || fs.statSync(nodeZipPath).size < 1_000_000) {
+    console.log(`Downloading ${nodeZipUrl}`);
+    await download(nodeZipUrl, nodeZipPath);
+  } else {
+    console.log(`Using cached ${nodeZipPath}`);
+  }
+
+  fs.rmSync(nodeExtractDir, { recursive: true, force: true });
+  console.log(`Extracting Node → ${nodeExtractDir}`);
+  unzip(nodeZipPath, CACHE_DIR);
+
+  const extractedNode =
+    [
+      path.join(nodeExtractDir, "node.exe"),
+      path.join(CACHE_DIR, `node-v${nodeVersion}-win-x64`, "node.exe"),
+    ].find((candidate) => fs.existsSync(candidate)) || "";
+
+  if (!extractedNode) {
+    throw new Error(`node.exe not found after extracting ${nodeZipName}`);
+  }
+
+  const nodeDestDir = path.join(OUT_DIR, "resources", "node");
+  fs.mkdirSync(nodeDestDir, { recursive: true });
+  fs.copyFileSync(extractedNode, path.join(nodeDestDir, "node.exe"));
+
   assertExists(tatexExe, "TATex.exe");
   assertExists(path.join(appDir, "electron", "main.js"), "resources/app/electron/main.js");
   assertExists(path.join(appDir, "fe", "dist", "index.html"), "resources/app/fe/dist/index.html");
   assertExists(path.join(backendDest, "index.js"), "resources/backend/index.js");
   assertExists(path.join(backendDest, "utils", "usbBackup.js"), "resources/backend/utils/usbBackup.js");
+  assertExists(path.join(nodeDestDir, "node.exe"), "resources/node/node.exe");
 
   if (fs.existsSync(path.join(backendDest, "node_modules", "puppeteer"))) {
     throw new Error("puppeteer should not be in staged backend");
