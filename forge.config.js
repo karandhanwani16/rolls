@@ -25,13 +25,32 @@ function ignorePath(file) {
   return true;
 }
 
+function copyBackendIntoPackage(outPath) {
+  const resourcesDir = path.join(outPath, "resources");
+  const destBackend = path.join(resourcesDir, "backend");
+  fs.mkdirSync(resourcesDir, { recursive: true });
+  fs.rmSync(destBackend, { recursive: true, force: true });
+
+  console.log(`Copying staged backend → ${destBackend}`);
+  // Plain filesystem copy (not asar / not Forge extraResource) — avoids CI heap OOM.
+  fs.cpSync(BACKEND_RESOURCE, destBackend, { recursive: true });
+
+  const marker = path.join(destBackend, "utils", "usbBackup.js");
+  if (!fs.existsSync(marker)) {
+    throw new Error(
+      `Packaged app is missing ${marker}. USB copy must include resources\\backend.`
+    );
+  }
+}
+
 module.exports = {
   packagerConfig: {
     name: "T. A. TEX",
     executableName: "TATex",
     asar: true,
     prune: true,
-    extraResource: [BACKEND_RESOURCE],
+    // Backend is attached in postPackage — do NOT use extraResource (OOM on CI).
+    extraResource: [],
     ignore: ignorePath,
   },
   rebuildConfig: {},
@@ -52,17 +71,16 @@ module.exports = {
       if (!fs.existsSync(path.join(BACKEND_RESOURCE, "utils", "usbBackup.js"))) {
         throw new Error(`Missing staged backend at ${BACKEND_RESOURCE}`);
       }
-      config.packagerConfig.extraResource = [BACKEND_RESOURCE];
+      // Keep packager free of the backend tree.
+      config.packagerConfig.extraResource = [];
     },
     async postPackage(_config, packageResult) {
       const outputs = packageResult.outputPaths || [];
+      if (!outputs.length) {
+        throw new Error("electron-forge package produced no output paths");
+      }
       for (const outPath of outputs) {
-        const packagedBackend = path.join(outPath, "resources", "backend", "utils", "usbBackup.js");
-        if (!fs.existsSync(packagedBackend)) {
-          throw new Error(
-            `Packaged app is missing ${packagedBackend}. USB copy must include resources\\backend.`
-          );
-        }
+        copyBackendIntoPackage(outPath);
       }
     },
   },

@@ -66,8 +66,8 @@ jobs:
           PUPPETEER_SKIP_DOWNLOAD: "1"
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "1"
           DATABASE_URL: "file:./dev.db"
-          # GitHub windows-latest has ~7GB RAM; keep heap under that.
-          NODE_OPTIONS: "--max-old-space-size=5120"
+          # Slim Electron shell only during Forge; backend is copied in postPackage.
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run package
 
       - name: Verify package layout
