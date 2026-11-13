@@ -215,6 +215,9 @@ class SaleService {
                 where: { id: sale.id },
                 include: { items: true }
             });
+        },{
+            maxWait: 15000,
+            timeout: 60000
         });
     }
 
@@ -352,6 +355,9 @@ class SaleService {
                 where: { id: sale.id },
                 include: { items: true }
             });
+        },{
+            maxWait: 15000,
+            timeout: 60000
         });
     }
 
