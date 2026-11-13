@@ -11,6 +11,7 @@
     "build:fe": "npm --prefix fe run build",
     "build:be": "npm --prefix be run postinstall",
     "package": "electron-forge package",
+    "package:win": "npm run build:fe && node scripts/stage-packaged-backend.js && node scripts/assemble-win-portable.js",
     "make": "electron-forge make",
     "make:zip": "electron-forge make --targets=@electron-forge/maker-zip"
   },

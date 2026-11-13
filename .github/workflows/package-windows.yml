@@ -6,7 +6,7 @@ on:
 jobs:
   package:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -24,12 +24,6 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix fe install
 
-      - name: Install backend dependencies
-        shell: pwsh
-        run: |
-          $env:PUPPETEER_SKIP_DOWNLOAD = "1"
-          npm --prefix be install
-
       - name: Use SQLite schema for USB package
         shell: pwsh
         run: |
@@ -46,29 +40,28 @@ jobs:
           DATABASE_URL="file:./dev.db"
           USB_ROOT="usb-dev"
           DATABASE_PATH="usb-dev/data/database.sqlite"
-          JWT_SECRET="PDZekIziIxat6TklAcQbgF7SgRDtl04tZWVKSEmr6tq"
+          JWT_SECRET="ci-build-secret-not-for-runtime"
           PORT=3001
           CORS_ORIGINS="http://localhost:8080"
           NODE_ENV="production"
           "@ | Set-Content -Path "be/.env" -Encoding utf8
 
-      - name: Generate Prisma client
-        working-directory: be
-        run: npx prisma generate
+      - name: Build frontend
+        run: npm run build:fe
 
-      - name: Rebuild native modules
-        working-directory: be
-        run: npm rebuild bcrypt
-
-      - name: Package Electron app
+      - name: Stage backend (lean, no Puppeteer)
         shell: pwsh
         env:
           PUPPETEER_SKIP_DOWNLOAD: "1"
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "1"
           DATABASE_URL: "file:./dev.db"
-          # Slim Electron shell only during Forge; backend is copied in postPackage.
-          NODE_OPTIONS: "--max-old-space-size=4096"
-        run: npm run package
+        run: node scripts/stage-packaged-backend.js
+
+      - name: Assemble portable Windows app
+        shell: pwsh
+        env:
+          DATABASE_URL: "file:./dev.db"
+        run: node scripts/assemble-win-portable.js
 
       - name: Verify package layout
         shell: pwsh
@@ -76,13 +69,15 @@ jobs:
           $root = "out/T. A. TEX-win32-x64"
           foreach ($path in @(
             "$root/TATex.exe",
+            "$root/resources/app/electron/main.js",
+            "$root/resources/app/fe/dist/index.html",
             "$root/resources/backend/index.js",
             "$root/resources/backend/node_modules/@prisma/client"
           )) {
             if (-not (Test-Path $path)) { throw "Missing required path: $path" }
           }
           if (Test-Path "$root/resources/backend/node_modules/puppeteer") {
-            throw "puppeteer should not be bundled (keeps package under CI memory limits)"
+            throw "puppeteer should not be bundled"
           }
           Get-ChildItem $root | Format-Table Name, Length
 
