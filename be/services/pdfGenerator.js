@@ -1,8 +1,18 @@
-const puppeteer = require('puppeteer');
 const { format } = require('date-fns');
 const customerService = require('./customerService');
 
+function loadPuppeteer() {
+    try {
+        return require('puppeteer');
+    } catch (error) {
+        throw new Error(
+            'PDF generation requires puppeteer/Chrome, which is not bundled in this USB build'
+        );
+    }
+}
+
 async function generateCustomerReport({ customerIds, startDate, endDate, customerType }) {
+    const puppeteer = loadPuppeteer();
     const browser = await puppeteer.launch({
         headless: 'new',
         args: ['--no-sandbox']

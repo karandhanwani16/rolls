@@ -1,8 +1,17 @@
 const prisma = require('../prisma/client');
 const { format } = require('date-fns');
 const { PurchaseItemStatus } = require('../utils/purchaseItemStatus');
-const puppeteer = require('puppeteer');
 const invoiceTemplate = require('./invoiceTemplate');
+
+function loadPuppeteer() {
+    try {
+        return require('puppeteer');
+    } catch (error) {
+        throw new Error(
+            'PDF generation requires puppeteer/Chrome, which is not bundled in this USB build'
+        );
+    }
+}
 const transactionService = require('./transactions');
 const { normalizeUnit } = require('../utils/quantityUnits');
 const {
@@ -398,6 +407,7 @@ class SaleService {
         try {
             const html = await this.generateInvoiceHTML(saleId, documentType, options);
 
+            const puppeteer = loadPuppeteer();
             const browser = await puppeteer.launch({
                 headless: 'new',
                 args: ['--no-sandbox', '--disable-setuid-sandbox']

@@ -17,9 +17,7 @@ function ignorePath(file) {
   if (normalized === "/electron" || normalized.startsWith("/electron/")) {
     return false;
   }
-  if (normalized === "/fe") {
-    return false;
-  }
+  // Only the built frontend — never fe/src or fe/node_modules (OOM on CI).
   if (normalized === "/fe/dist" || normalized.startsWith("/fe/dist/")) {
     return false;
   }

@@ -64,8 +64,27 @@ jobs:
         shell: pwsh
         env:
           PUPPETEER_SKIP_DOWNLOAD: "1"
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "1"
           DATABASE_URL: "file:./dev.db"
+          # GitHub windows-latest has ~7GB RAM; keep heap under that.
+          NODE_OPTIONS: "--max-old-space-size=5120"
         run: npm run package
+
+      - name: Verify package layout
+        shell: pwsh
+        run: |
+          $root = "out/T. A. TEX-win32-x64"
+          foreach ($path in @(
+            "$root/TATex.exe",
+            "$root/resources/backend/index.js",
+            "$root/resources/backend/node_modules/@prisma/client"
+          )) {
+            if (-not (Test-Path $path)) { throw "Missing required path: $path" }
+          }
+          if (Test-Path "$root/resources/backend/node_modules/puppeteer") {
+            throw "puppeteer should not be bundled (keeps package under CI memory limits)"
+          }
+          Get-ChildItem $root | Format-Table Name, Length
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4

@@ -1,7 +1,16 @@
-const puppeteer = require('puppeteer');
+function loadPuppeteer() {
+    try {
+        return require('puppeteer');
+    } catch (error) {
+        throw new Error(
+            'PDF generation requires puppeteer/Chrome, which is not bundled in this USB build'
+        );
+    }
+}
 
 const generatePDF = async(data) => {
         try {
+            const puppeteer = loadPuppeteer();
             const browser = await puppeteer.launch({
                 headless: 'new',
                 args: ['--no-sandbox', '--disable-setuid-sandbox']
